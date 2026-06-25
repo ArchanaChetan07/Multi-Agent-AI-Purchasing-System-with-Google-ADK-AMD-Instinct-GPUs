@@ -7,7 +7,6 @@
 [![CrewAI](https://img.shields.io/badge/CrewAI-latest-orange?style=flat-square)](https://crewai.com)
 [![LangGraph](https://img.shields.io/badge/LangGraph-latest-green?style=flat-square)](https://langchain-ai.github.io/langgraph/)
 [![vLLM](https://img.shields.io/badge/vLLM-latest-purple?style=flat-square)](https://vllm.ai)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 A production-grade **Agent-to-Agent (A2A)** system demonstrating cross-framework AI agent interoperability. Three specialized agents — built on different frameworks — collaborate through Google's open A2A protocol to handle natural-language food ordering, all running locally on **AMD Instinct™ GPUs** with zero cloud API dependency.
 
@@ -300,12 +299,6 @@ pytest tests/ -v
 4. Push and open a Pull Request
 
 Please follow [Conventional Commits](https://www.conventionalcommits.org/) and ensure `pytest tests/` passes before submitting.
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
