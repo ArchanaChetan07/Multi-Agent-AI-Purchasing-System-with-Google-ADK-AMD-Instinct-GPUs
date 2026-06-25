@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purchasing Concierge — Multi-Agent AI System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;450;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B0F1A;--surface:#111827;--surface2:#161e2e;--surface3:#1c2640;
+  --border:rgba(255,255,255,0.065);--border2:rgba(255,255,255,0.11);--border3:rgba(255,255,255,0.18);
+  --indigo:#6C63FF;--indigo-d:#4A42CC;--indigo-l:rgba(108,99,255,0.13);--indigo-ll:rgba(108,99,255,0.07);
+  --amber:#F5A623;--amber-l:rgba(245,166,35,0.12);--amber-ll:rgba(245,166,35,0.06);
+  --teal:#00D4B4;--teal-l:rgba(0,212,180,0.11);--teal-ll:rgba(0,212,180,0.05);
+  --coral:#FF6B6B;--coral-l:rgba(255,107,107,0.11);
+  --green:#4ADE80;--green-l:rgba(74,222,128,0.1);
+  --muted:#6B7585;--muted2:#8892A4;--text:#DDE3EF;--text-dim:#9AAAB8;
+  --font-d:'Space Grotesk',sans-serif;--font-b:'Inter',sans-serif;--font-m:'JetBrains Mono',monospace;
+  --r:8px;--r-lg:14px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-b);overflow:hidden;font-size:14px}
+/* Layout */
+.app{display:grid;grid-template-rows:52px 1fr 188px;height:100vh;max-height:100vh}
+/* Topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:rgba(11,15,26,0.95);position:relative;z-index:20;gap:16px}
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.brand-icon{width:26px;height:26px;border-radius:6px;background:var(--indigo-l);border:1px solid rgba(108,99,255,0.3);display:flex;align-items:center;justify-content:center}
+.brand-name{font-family:var(--font-d);font-size:14px;font-weight:600;letter-spacing:-0.02em;white-space:nowrap}
+.brand-name em{color:var(--indigo);font-style:normal}
+.topbar-center{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.chip{font-family:var(--font-m);font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid;letter-spacing:0.02em}
+.chip-i{color:var(--indigo);border-color:rgba(108,99,255,0.3);background:var(--indigo-ll)}
+.chip-a{color:var(--amber);border-color:rgba(245,166,35,0.28);background:var(--amber-ll)}
+.chip-t{color:var(--teal);border-color:rgba(0,212,180,0.25);background:var(--teal-ll)}
+.chip-g{color:var(--green);border-color:rgba(74,222,128,0.25);background:var(--green-l)}
+.topbar-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.sys-stats{display:flex;gap:10px;font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.stat{display:flex;align-items:center;gap:4px}
+.stat-dot{width:5px;height:5px;border-radius:50%}
+.dot-on{background:var(--green);box-shadow:0 0 5px var(--green)}
+.dot-warn{background:var(--amber)}
+.uptime-badge{font-family:var(--font-m);font-size:10px;color:var(--muted2);padding:2px 8px;border:1px solid var(--border2);border-radius:4px}
+
+/* Main split */
+.main{display:grid;grid-template-columns:320px 1fr;overflow:hidden;min-height:0}
+
+/* Left panel */
+.left{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.pane-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.pane-hdr-label{font-family:var(--font-m);font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:5px}
+.pane-hdr-val{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+
+/* Graph */
+.graph-wrap{flex:1;position:relative;min-height:0}
+#graph{width:100%;height:100%;display:block}
+
+/* Agent list */
+.agent-list{border-top:1px solid var(--border);padding:10px;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.agent-row{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);transition:border-color .2s,background .2s;cursor:default}
+.agent-row.is-root{border-color:rgba(108,99,255,0.22);background:var(--indigo-ll)}
+.agent-row.is-working-amber{border-color:rgba(245,166,35,0.35);background:var(--amber-l)}
+.agent-row.is-working-teal{border-color:rgba(0,212,180,0.3);background:var(--teal-l)}
+.agent-row.is-working-indigo{border-color:rgba(108,99,255,0.4);background:var(--indigo-l)}
+.agent-row.is-done{border-color:rgba(74,222,128,0.25);background:var(--green-l)}
+.a-led{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:box-shadow .3s}
+.led-indigo{background:var(--indigo)}
+.led-amber{background:var(--amber)}
+.led-teal{background:var(--teal)}
+.led-pulse-indigo{box-shadow:0 0 0 3px rgba(108,99,255,0.25),0 0 8px var(--indigo)}
+.led-pulse-amber{box-shadow:0 0 0 3px rgba(245,166,35,0.25),0 0 8px var(--amber)}
+.led-pulse-teal{box-shadow:0 0 0 3px rgba(0,212,180,0.2),0 0 8px var(--teal)}
+.a-info{flex:1;min-width:0}
+.a-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-sub{font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:1px}
+.a-badge{font-family:var(--font-m);font-size:10px;padding:2px 7px;border-radius:4px;flex-shrink:0;border:1px solid transparent}
+.badge-idle{color:var(--muted);background:rgba(107,117,133,0.1);border-color:rgba(107,117,133,0.15)}
+.badge-thinking{color:var(--amber);background:var(--amber-l);border-color:rgba(245,166,35,0.3);animation:blink 1.1s ease-in-out infinite}
+.badge-calling{color:var(--coral);background:var(--coral-l);border-color:rgba(255,107,107,0.3);animation:blink 0.9s ease-in-out infinite}
+.badge-done{color:var(--green);background:var(--green-l);border-color:rgba(74,222,128,0.25)}
+.badge-error{color:var(--coral);background:var(--coral-l);border-color:rgba(255,107,107,0.3)}
+.badge-routing{color:var(--indigo);background:var(--indigo-l);border-color:rgba(108,99,255,0.3);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* Right: chat */
+.right{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.chat-scroll{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;min-height:0}
+.chat-scroll::-webkit-scrollbar{width:3px}
+.chat-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Messages */
+.msg{display:flex;gap:9px;animation:rise .25s ease;max-width:100%}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.from-user{align-self:flex-end;flex-direction:row-reverse;max-width:72%}
+.msg.from-agent{max-width:88%}
+.avatar{width:30px;height:30px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-size:9px;font-weight:500}
+.av-user{background:var(--indigo-l);border:1px solid rgba(108,99,255,0.28);color:var(--indigo)}
+.av-agent{background:var(--surface3);border:1px solid var(--border2);color:var(--muted2)}
+.msg-col{display:flex;flex-direction:column;gap:3px;min-width:0}
+.msg-meta{font-family:var(--font-m);font-size:10px;color:var(--muted);padding:0 3px}
+.from-user .msg-meta{text-align:right}
+.bubble{padding:11px 14px;border-radius:var(--r-lg);font-size:13.5px;line-height:1.65;color:var(--text-dim);border:1px solid var(--border)}
+.from-user .bubble{background:var(--indigo-l);border-color:rgba(108,99,255,0.25);color:var(--text);border-radius:var(--r-lg) var(--r-lg) 4px var(--r-lg)}
+.from-agent .bubble{background:var(--surface2);border-radius:4px var(--r-lg) var(--r-lg) var(--r-lg)}
+
+/* Streamed text cursor */
+.stream-cursor::after{content:'▋';animation:cur .65s step-end infinite;color:var(--indigo);font-size:12px;margin-left:1px}
+@keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
+
+/* Thinking block */
+.think-block{margin:6px 0 0;padding:8px 12px;border-radius:var(--r);border-left:2px solid rgba(108,99,255,0.4);background:var(--indigo-ll);font-family:var(--font-m);font-size:11px;color:rgba(108,99,255,0.7);line-height:1.6}
+.think-label{font-size:9px;letter-spacing:0.09em;text-transform:uppercase;color:rgba(108,99,255,0.5);margin-bottom:3px}
+
+/* Tool blocks */
+.tool-row{margin:5px 0 2px;padding:8px 11px;border-radius:var(--r);font-family:var(--font-m);font-size:11px;line-height:1.55;border-left:2px solid}
+.tool-call-block{border-color:var(--amber);background:var(--amber-ll)}
+.tool-resp-block{border-color:var(--teal);background:var(--teal-ll)}
+.tool-err-block{border-color:var(--coral);background:var(--coral-l)}
+.tool-hdr{font-size:9px;letter-spacing:0.09em;text-transform:uppercase;margin-bottom:3px;opacity:.7}
+.tool-call-block .tool-hdr{color:var(--amber)}
+.tool-resp-block .tool-hdr{color:var(--teal)}
+.tool-err-block .tool-hdr{color:var(--coral)}
+.tool-body{color:var(--text-dim);white-space:pre-wrap;word-break:break-all}
+.tool-body code{color:inherit}
+
+/* Order receipt */
+.receipt{margin:8px 0 0;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden}
+.receipt-hdr{padding:8px 12px;background:var(--surface3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.receipt-title{font-family:var(--font-m);font-size:11px;font-weight:500;color:var(--text-dim)}
+.receipt-id{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+.receipt-body{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.receipt-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-dim)}
+.receipt-row.total{border-top:1px solid var(--border);margin-top:4px;padding-top:6px;font-weight:500;color:var(--text)}
+.receipt-status{padding:6px 12px;background:var(--green-l);border-top:1px solid rgba(74,222,128,0.15);font-family:var(--font-m);font-size:10px;color:var(--green);display:flex;align-items:center;gap:5px}
+
+/* Typing dots */
+.typing{display:flex;gap:4px;align-items:center;padding:2px 0}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:bounce 1.15s ease-in-out infinite}
+.typing span:nth-child(2){animation-delay:.18s}
+.typing span:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* Input area */
+.input-zone{padding:12px 16px;border-top:1px solid var(--border);background:rgba(11,15,26,0.7);flex-shrink:0}
+.quick-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.qpill{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.qpill:hover{border-color:rgba(108,99,255,.45);color:var(--text);background:var(--indigo-ll)}
+.qpill:active{transform:scale(.97)}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+#msgInput{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:10px 14px;font-size:13.5px;font-family:var(--font-b);color:var(--text);resize:none;outline:none;line-height:1.5;max-height:100px;transition:border-color .2s;min-height:40px}
+#msgInput::placeholder{color:var(--muted)}
+#msgInput:focus{border-color:rgba(108,99,255,.45)}
+.input-actions{display:flex;gap:6px;align-items:center}
+.token-count{font-family:var(--font-m);font-size:10px;color:var(--muted)}
+#sendBtn{width:40px;height:40px;border-radius:var(--r);border:none;background:var(--indigo);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;flex-shrink:0}
+#sendBtn:hover:not(:disabled){background:var(--indigo-d)}
+#sendBtn:active:not(:disabled){transform:scale(.95)}
+#sendBtn:disabled{opacity:.45;cursor:not-allowed}
+
+/* Feed */
+.feed{border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.feed-hdr{padding:7px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.feed-hdr-left{display:flex;align-items:center;gap:6px;font-family:var(--font-m);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.feed-live-dot{width:5px;height:5px;border-radius:50%;background:var(--coral);animation:blink 1.4s ease-in-out infinite}
+.feed-tabs{display:flex;gap:2px;margin-left:auto}
+.ftab{font-family:var(--font-m);font-size:10px;padding:2px 8px;border-radius:4px;background:none;border:1px solid transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.ftab.active{color:var(--text);border-color:var(--border2);background:var(--surface2)}
+.feed-body{flex:1;overflow-y:auto;overflow-x:hidden;font-family:var(--font-m);font-size:11px;min-height:0}
+.feed-body::-webkit-scrollbar{width:3px}
+.feed-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.log-row{display:flex;align-items:baseline;gap:6px;padding:2px 12px;line-height:1.7;animation:rise .15s ease;border-bottom:1px solid rgba(255,255,255,0.02)}
+.log-row:hover{background:rgba(255,255,255,.02)}
+.log-ts{color:var(--muted);font-size:10px;flex-shrink:0;width:52px;opacity:.6}
+.log-tag{font-size:9px;padding:1px 5px;border-radius:3px;flex-shrink:0;text-transform:uppercase;letter-spacing:.05em;font-weight:500;min-width:52px;text-align:center}
+.t-sys{background:rgba(255,255,255,.05);color:var(--muted2)}
+.t-root{background:var(--indigo-ll);color:var(--indigo)}
+.t-burger{background:var(--amber-ll);color:var(--amber)}
+.t-pizza{background:var(--teal-ll);color:var(--teal)}
+.t-a2a{background:rgba(255,255,255,.04);color:#5a6478}
+.t-tool{background:var(--coral-l);color:var(--coral)}
+.t-err{background:rgba(255,107,107,.15);color:var(--coral)}
+.log-msg{color:var(--text-dim);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log-msg .hi{color:var(--text)}
+.log-msg .dim{color:var(--muted)}
+
+/* scrollbar global */
+*{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="3.5" r="2" fill="#6C63FF"/>
+        <circle cx="3" cy="10.5" r="1.6" fill="#F5A623"/>
+        <circle cx="11" cy="10.5" r="1.6" fill="#00D4B4"/>
+        <line x1="7" y1="5.5" x2="3" y2="8.9" stroke="rgba(108,99,255,0.5)" stroke-width=".9"/>
+        <line x1="7" y1="5.5" x2="11" y2="8.9" stroke="rgba(108,99,255,0.5)" stroke-width=".9"/>
+      </svg>
+    </div>
+    <span class="brand-name">Purchasing <em>Concierge</em></span>
+  </div>
+  <div class="topbar-center">
+    <span class="chip chip-i">Google ADK</span>
+    <span class="chip chip-a">CrewAI · vLLM</span>
+    <span class="chip chip-t">LangGraph · Ollama</span>
+    <span class="chip chip-g">AMD Instinct™ MI300X</span>
+    <span class="chip chip-i">A2A Protocol</span>
+  </div>
+  <div class="topbar-right">
+    <div class="sys-stats">
+      <div class="stat"><div class="stat-dot dot-on"></div><span id="stat-gpu">GPU 47%</span></div>
+      <div class="stat"><div class="stat-dot dot-on"></div><span id="stat-mem">VRAM 71%</span></div>
+      <div class="stat"><div class="stat-dot dot-on"></div><span>3/3 online</span></div>
+    </div>
+    <div class="uptime-badge" id="uptimeBadge">up 00:00</div>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Left -->
+  <div class="left">
+    <div class="pane-hdr">
+      <div class="pane-hdr-label">
+        <svg width="9" height="9" viewBox="0 0 9 9"><circle cx="4.5" cy="4.5" r="3.5" stroke="#6C63FF" stroke-width=".9" fill="none"/><circle cx="4.5" cy="4.5" r="1.2" fill="#6C63FF"/></svg>
+        Agent topology
+      </div>
+      <span class="pane-hdr-val" id="taskCounter">0 tasks</span>
+    </div>
+    <div class="graph-wrap"><canvas id="graph"></canvas></div>
+    <div class="agent-list">
+      <div class="agent-row is-root" id="row-root">
+        <div class="a-led led-indigo" id="led-root"></div>
+        <div class="a-info">
+          <div class="a-name">Purchasing Concierge</div>
+          <div class="a-sub">google-adk · litellm · llama3.1:latest · root</div>
+        </div>
+        <span class="a-badge badge-idle" id="badge-root">idle</span>
+      </div>
+      <div class="agent-row" id="row-burger">
+        <div class="a-led led-amber" id="led-burger"></div>
+        <div class="a-info">
+          <div class="a-name">Burger Seller Agent</div>
+          <div class="a-sub">crewai · vllm :8088 · :10001 · Basic Auth</div>
+        </div>
+        <span class="a-badge badge-idle" id="badge-burger">idle</span>
+      </div>
+      <div class="agent-row" id="row-pizza">
+        <div class="a-led led-teal" id="led-pizza"></div>
+        <div class="a-info">
+          <div class="a-name">Pizza Seller Agent</div>
+          <div class="a-sub">langgraph · ollama :11434 · :10000 · Bearer</div>
+        </div>
+        <span class="a-badge badge-idle" id="badge-pizza">idle</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: chat -->
+  <div class="right">
+    <div class="pane-hdr">
+      <div class="pane-hdr-label">
+        <svg width="9" height="9" viewBox="0 0 9 9"><rect x=".5" y="1.5" width="8" height="6" rx="1.2" stroke="#6C63FF" stroke-width=".9" fill="none"/><path d="M2.5 5.5l2 2 2-2" stroke="#6C63FF" stroke-width=".9" fill="none"/></svg>
+        Conversation
+      </div>
+      <span class="pane-hdr-val">session <span id="sessionLabel" style="color:var(--indigo)">—</span> &nbsp;·&nbsp; <span id="turnCount">0 turns</span></span>
+    </div>
+    <div class="chat-scroll" id="chatScroll">
+      <div class="msg from-agent">
+        <div class="avatar av-agent">AI</div>
+        <div class="msg-col">
+          <div class="msg-meta">Concierge · just now</div>
+          <div class="bubble">
+            Hello! I coordinate orders between our burger and pizza sellers.<br><br>
+            I can show you <strong>menus</strong>, answer <strong>pricing questions</strong>, or help you <strong>place an order</strong>. What can I get for you?
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="input-zone">
+      <div class="quick-row">
+        <span class="qpill" onclick="pill(this)">What's on the menu?</span>
+        <span class="qpill" onclick="pill(this)">Show burger options</span>
+        <span class="qpill" onclick="pill(this)">2 Pepperoni Pizzas please</span>
+        <span class="qpill" onclick="pill(this)">1 Cheeseburger + 1 Hawaiian Pizza</span>
+        <span class="qpill" onclick="pill(this)">How much is a Double Cheeseburger?</span>
+      </div>
+      <div class="input-row">
+        <textarea id="msgInput" rows="1" placeholder="Ask about food or place an order…" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+        <div class="input-actions">
+          <span class="token-count" id="tokenCount"></span>
+          <button id="sendBtn" onclick="send()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M8 2l6 6-6 6" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Feed -->
+<div class="feed">
+  <div class="feed-hdr">
+    <div class="feed-hdr-left"><div class="feed-live-dot"></div>A2A protocol log</div>
+    <div class="feed-tabs">
+      <button class="ftab active" onclick="setTab('all',this)">All</button>
+      <button class="ftab" onclick="setTab('a2a',this)">A2A</button>
+      <button class="ftab" onclick="setTab('tool',this)">Tools</button>
+      <button class="ftab" onclick="setTab('err',this)">Errors</button>
+    </div>
+    <button onclick="clearFeed()" style="background:none;border:none;cursor:pointer;font-family:var(--font-m);font-size:10px;color:var(--muted);margin-left:8px">clear</button>
+  </div>
+  <div class="feed-body" id="feedBody"></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const BURGER_MENU = [
+  {name:'Classic Cheeseburger',price:85},
+  {name:'Double Cheeseburger',price:110},
+  {name:'Spicy Chicken Burger',price:80},
+  {name:'Spicy Cajun Burger',price:85},
+];
+const PIZZA_MENU = [
+  {name:'Margherita Pizza',price:100},
+  {name:'Pepperoni Pizza',price:140},
+  {name:'Hawaiian Pizza',price:110},
+  {name:'Veggie Pizza',price:100},
+  {name:'BBQ Chicken Pizza',price:130},
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const S = {
+  busy: false,
+  taskN: 0,
+  turnN: 0,
+  sessionId: Math.random().toString(36).slice(2,9).toUpperCase(),
+  // pending order context
+  pendingConfirm: null,  // {type:'burger'|'pizza'|'both', items:[]}
+  feedFilter: 'all',
+  feedRows: [],
+  startTime: Date.now(),
+  tokens: 0,
+};
+
+document.getElementById('sessionLabel').textContent = S.sessionId;
+
+// ─── Uptime + GPU mock ────────────────────────────────────────────────────────
+setInterval(()=>{
+  const s = Math.floor((Date.now()-S.startTime)/1000);
+  const m = Math.floor(s/60).toString().padStart(2,'0');
+  const sec = (s%60).toString().padStart(2,'0');
+  document.getElementById('uptimeBadge').textContent = `up ${m}:${sec}`;
+  // Fluctuate GPU stats slightly
+  const gpu = 44+Math.floor(Math.random()*8);
+  const mem = 68+Math.floor(Math.random()*7);
+  document.getElementById('stat-gpu').textContent = `GPU ${gpu}%`;
+  document.getElementById('stat-mem').textContent = `VRAM ${mem}%`;
+},4000);
+
+// ─── Canvas graph ─────────────────────────────────────────────────────────────
+const cv = document.getElementById('graph');
+const cx = cv.getContext('2d');
+const N = {
+  root:  {x:0,y:0,r:20,label:'Concierge',col:'#6C63FF'},
+  burger:{x:0,y:0,r:16,label:'Burger',col:'#F5A623'},
+  pizza: {x:0,y:0,r:16,label:'Pizza',col:'#00D4B4'},
+};
+let particles=[], frame=0, activeEdge=null;
+function sizeGraph(){
+  const p=cv.parentElement;
+  cv.width=p.clientWidth; cv.height=p.clientHeight;
+  const w=cv.width,h=cv.height;
+  N.root.x=w/2;   N.root.y=h*0.3;
+  N.burger.x=w*0.27; N.burger.y=h*0.72;
+  N.pizza.x=w*0.73;  N.pizza.y=h*0.72;
+}
+class Ptcl{
+  constructor(from,to,col,opacity=1){
+    this.f=from;this.t=to;this.col=col;this.p=0;this.spd=0.016+Math.random()*0.01;this.op=opacity;
+  }
+  tick(){this.p=Math.min(1,this.p+this.spd);return this.p<1;}
+  draw(){
+    const x=this.f.x+(this.t.x-this.f.x)*this.p;
+    const y=this.f.y+(this.t.y-this.f.y)*this.p;
+    const g=cx.createRadialGradient(x,y,0,x,y,5);
+    g.addColorStop(0,this.col+'FF');g.addColorStop(1,this.col+'00');
+    cx.beginPath();cx.arc(x,y,5,0,Math.PI*2);cx.fillStyle=g;cx.fill();
+  }
+}
+function drawEdge(a,b,active,col){
+  cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);
+  cx.strokeStyle=active?col+'55':'rgba(255,255,255,.055)';
+  cx.lineWidth=active?1.4:0.8;
+  if(!active)cx.setLineDash([3,7]);
+  cx.stroke();cx.setLineDash([]);
+}
+function drawNode(n,lit){
+  if(lit){
+    const g=cx.createRadialGradient(n.x,n.y,n.r*.3,n.x,n.y,n.r*2.8);
+    g.addColorStop(0,n.col+'22');g.addColorStop(1,'transparent');
+    cx.beginPath();cx.arc(n.x,n.y,n.r*2.8,0,Math.PI*2);cx.fillStyle=g;cx.fill();
+  }
+  // Outer ring
+  cx.beginPath();cx.arc(n.x,n.y,n.r+3.5,0,Math.PI*2);
+  cx.strokeStyle=n.col+(lit?'45':'18');cx.lineWidth=1;cx.stroke();
+  // Fill
+  cx.beginPath();cx.arc(n.x,n.y,n.r,0,Math.PI*2);
+  cx.fillStyle=n.col+(lit?'1C':'0E');cx.fill();
+  cx.strokeStyle=n.col+(lit?'BB':'40');cx.lineWidth=lit?1.6:1;cx.stroke();
+  // Label
+  cx.fillStyle=lit?n.col:n.col+'77';
+  cx.font=`${lit?'500':'400'} 10px 'JetBrains Mono',monospace`;
+  cx.textAlign='center';cx.fillText(n.label,n.x,n.y+n.r+14);
+}
+function graphLoop(){
+  if(!cv.width){requestAnimationFrame(graphLoop);return;}
+  cx.clearRect(0,0,cv.width,cv.height);
+  frame++;
+  const bLit=activeEdge==='burger', pLit=activeEdge==='pizza';
+  drawEdge(N.root,N.burger,bLit,N.burger.col);
+  drawEdge(N.root,N.pizza, pLit,N.pizza.col);
+  particles=particles.filter(p=>{const a=p.tick();p.draw();return a;});
+  drawNode(N.root,true);
+  drawNode(N.burger,bLit);
+  drawNode(N.pizza,pLit);
+  // Ambient idle particles
+  if(frame%90===0&&!activeEdge){
+    const t=Math.random()<0.5?{f:N.root,t:N.burger,c:'#F5A623'}:{f:N.root,t:N.pizza,c:'#00D4B4'};
+    particles.push(new Ptcl(t.f,t.t,t.c+'30',0.25));
+  }
+  requestAnimationFrame(graphLoop);
+}
+function burst(target,n=6){
+  const nd=target==='burger'?N.burger:N.pizza;
+  const col=target==='burger'?'#F5A623':'#00D4B4';
+  for(let i=0;i<n;i++) setTimeout(()=>particles.push(new Ptcl(N.root,nd,col)),i*100);
+}
+window.addEventListener('resize',sizeGraph);
+sizeGraph(); graphLoop();
+
+// ─── Agent UI helpers ─────────────────────────────────────────────────────────
+function setAgent(id, statusKey){
+  // statusKey: 'idle'|'routing'|'thinking'|'calling'|'done'|'error'
+  const badge=document.getElementById(`badge-${id}`);
+  const led=document.getElementById(`led-${id}`);
+  const row=document.getElementById(`row-${id}`);
+  const labels={idle:'idle',routing:'routing…',thinking:'thinking…',calling:'tool call',done:'done',error:'error'};
+  const badgeCls={idle:'badge-idle',routing:'badge-routing',thinking:'badge-thinking',calling:'badge-calling',done:'badge-done',error:'badge-error'};
+  badge.textContent=labels[statusKey];
+  badge.className=`a-badge ${badgeCls[statusKey]}`;
+  // led pulse
+  const ledMap={root:'indigo',burger:'amber',pizza:'teal'};
+  const c=ledMap[id];
+  const pulse=['routing','thinking','calling'].includes(statusKey);
+  led.className=`a-led led-${c}${pulse?` led-pulse-${c}`:''}`;
+  // row highlight
+  row.className='agent-row'+(id==='root'?' is-root':'')+
+    (statusKey==='done'?' is-done':'')+
+    (['routing','thinking','calling'].includes(statusKey)
+      ?(id==='root'?' is-working-indigo':id==='burger'?' is-working-amber':' is-working-teal'):'');
+}
+
+// ─── Feed log ─────────────────────────────────────────────────────────────────
+function ts(){const d=new Date();return [d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>x.toString().padStart(2,'0')).join(':');}
+const TAG_CLASS={sys:'t-sys',root:'t-root',burger:'t-burger',pizza:'t-pizza',a2a:'t-a2a',tool:'t-tool',err:'t-err'};
+
+function log(tag,msg,{highlight=[],dim=[]}={}){
+  let html=msg;
+  highlight.forEach(h=>{html=html.replace(new RegExp(h.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),`<span class="hi">${h}</span>`);});
+  dim.forEach(h=>{html=html.replace(new RegExp(h.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),`<span class="dim">${h}</span>`);});
+  const row={tag,msg,html,ts:ts(),visible:true};
+  S.feedRows.push(row);
+  renderFeedRow(row);
+}
+function renderFeedRow(row){
+  if(S.feedFilter!=='all'&&row.tag!==S.feedFilter)return;
+  const fb=document.getElementById('feedBody');
+  const el=document.createElement('div');
+  el.className='log-row';
+  el.innerHTML=`<span class="log-ts">${row.ts}</span><span class="log-tag ${TAG_CLASS[row.tag]||'t-sys'}">${row.tag}</span><span class="log-msg">${row.html}</span>`;
+  fb.appendChild(el);
+  fb.scrollTop=fb.scrollHeight;
+}
+function setTab(filter,btn){
+  S.feedFilter=filter;
+  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const fb=document.getElementById('feedBody');
+  fb.innerHTML='';
+  S.feedRows.forEach(r=>{if(filter==='all'||r.tag===filter)renderFeedRow(r);});
+}
+function clearFeed(){S.feedRows=[];document.getElementById('feedBody').innerHTML='';log('sys','Feed cleared');}
+
+// ─── Chat helpers ─────────────────────────────────────────────────────────────
+const scroll=document.getElementById('chatScroll');
+function reltime(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+
+function addUserMsg(text){
+  const d=document.createElement('div');
+  d.className='msg from-user';
+  d.innerHTML=`<div class="avatar av-user">You</div><div class="msg-col"><div class="msg-meta">You · ${reltime()}</div><div class="bubble">${esc(text)}</div></div>`;
+  scroll.appendChild(d);
+  scrollBottom();
+}
+
+function addTyping(){
+  const d=document.createElement('div');
+  d.className='msg from-agent';d.id='typingEl';
+  d.innerHTML=`<div class="avatar av-agent">AI</div><div class="msg-col"><div class="msg-meta">Concierge · processing…</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  scroll.appendChild(d);scrollBottom();
+}
+function removeTyping(){const e=document.getElementById('typingEl');if(e)e.remove();}
+
+// Stream text into a bubble char by char
+async function streamBubble(html, delayMs=18){
+  removeTyping();
+  const d=document.createElement('div');
+  d.className='msg from-agent';
+  const bub=document.createElement('div');bub.className='bubble stream-cursor';
+  const meta=document.createElement('div');meta.className='msg-meta';meta.textContent=`Concierge · ${reltime()}`;
+  const col=document.createElement('div');col.className='msg-col';
+  col.appendChild(meta);col.appendChild(bub);
+  const av=document.createElement('div');av.className='avatar av-agent';av.textContent='AI';
+  d.appendChild(av);d.appendChild(col);
+  scroll.appendChild(d);scrollBottom();
+  // Stream char by char (but skip tags as units)
+  const plain=html.replace(/<[^>]+>/g,'');
+  let cur=0;
+  const chars=[...html];
+  let rendered='',inTag=false;
+  for(let i=0;i<chars.length;i++){
+    if(chars[i]==='<')inTag=true;
+    if(!inTag){await sleep(delayMs+Math.random()*8);}
+    rendered+=chars[i];
+    if(chars[i]==='>')inTag=false;
+    bub.innerHTML=rendered+(inTag?'':'');
+    scrollBottom();
+  }
+  bub.classList.remove('stream-cursor');
+  S.tokens+=Math.ceil(plain.length/4);
+  return bub;
+}
+
+function appendToBubble(bub, html){
+  bub.innerHTML+=html;scrollBottom();
+}
+
+function scrollBottom(){scroll.scrollTop=scroll.scrollHeight;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function uid(){return 'ORD-'+Math.random().toString(36).slice(2,8).toUpperCase();}
+
+// ─── Intent parsing ───────────────────────────────────────────────────────────
+function intent(t){
+  const l=t.toLowerCase();
+  return {
+    menu:     /menu|what.*have|what.*offer|show me|what do you|options|list/i.test(t),
+    burger:   /burger|cheeseburger|cajun|spicy chicken|classic|double/i.test(t),
+    pizza:    /pizza|pepperoni|margherita|hawaiian|veggie|bbq/i.test(t),
+    order:    /order|want|like|give me|i.ll have|i.d like|buy|purchase|\d+\s*(x\s*)?(?:pizza|burger)/i.test(t),
+    confirm:  /^(yes|confirm|go ahead|sure|ok|yep|yeah|place it|do it|correct|that.s right|proceed)[\s!.]*$/i.test(t.trim()),
+    price:    /how much|price|cost|how many|what.s the price/i.test(t),
+    qty(item){const m=t.match(/(\d+)\s*(?:x\s*)?(?:pizza|pepperoni|margherita|hawaiian|veggie|bbq|burger|cheeseburger|cajun|chicken|classic|double|spicy)/i);return m?parseInt(m[1]):1;},
+  };
+}
+
+function pickItems(text, menu){
+  const found=[];
+  for(const item of menu){
+    const words=item.name.toLowerCase().split(' ');
+    const key=words.find(w=>w.length>4&&text.toLowerCase().includes(w));
+    if(key){
+      const m=text.match(/(\d+)\s*(?:x\s*)?/i);
+      found.push({...item,qty:m?parseInt(m[1]):1});
+      break;
+    }
+  }
+  if(!found.length) found.push({...menu[0],qty:1});
+  return found;
+}
+
+function formatItems(items){
+  return items.map(i=>`<div class="receipt-row"><span>${i.qty}× ${i.name}</span><span>IDR ${i.qty*i.price}K</span></div>`).join('');
+}
+function totalPrice(items){return items.reduce((s,i)=>s+i.qty*i.price,0);}
+
+function receiptHTML(title, orderId, items, agentColor){
+  const total=totalPrice(items);
+  return `<div class="receipt">
+  <div class="receipt-hdr"><span class="receipt-title" style="color:${agentColor}">${title}</span><span class="receipt-id">${orderId}</span></div>
+  <div class="receipt-body">${formatItems(items)}<div class="receipt-row total"><span>Total</span><span>IDR ${total}K</span></div></div>
+  <div class="receipt-status"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" stroke="#4ADE80" stroke-width=".8" fill="none"/><path d="M2.5 5l2 2 3-3" stroke="#4ADE80" stroke-width="1" stroke-linecap="round"/></svg> Order placed · est. ${20+Math.floor(Math.random()*15)} min</div>
+  </div>`;
+}
+
+// ─── Core agent flows ─────────────────────────────────────────────────────────
+async function handleMessage(text){
+  S.turnN++;
+  document.getElementById('turnCount').textContent=`${S.turnN} turn${S.turnN!==1?'s':''}`;
+  const it=intent(text);
+
+  // ── Confirmation of pending order ─────────────────────────────────────────
+  if(it.confirm && S.pendingConfirm){
+    const pc=S.pendingConfirm;
+    S.pendingConfirm=null;
+    await doConfirmedOrder(pc);
+    return;
+  }
+
+  // ── Price question ────────────────────────────────────────────────────────
+  if(it.price && !it.order){
+    setAgent('root','thinking');
+    log('root','price inquiry — no delegation needed, answering from context');
+    await sleep(600);
+    let resp='';
+    if(it.burger&&!it.pizza){
+      resp='Burger prices:<br><br>'+BURGER_MENU.map(i=>`• ${i.name} — <strong>IDR ${i.price}K</strong>`).join('<br>');
+    }else if(it.pizza&&!it.burger){
+      resp='Pizza prices:<br><br>'+PIZZA_MENU.map(i=>`• ${i.name} — <strong>IDR ${i.price}K</strong>`).join('<br>');
+    }else{
+      resp='Here\'s our full pricing:<br><br><strong style="color:var(--amber)">Burgers</strong><br>'+BURGER_MENU.map(i=>`• ${i.name} — IDR ${i.price}K`).join('<br>')+'<br><br><strong style="color:var(--teal)">Pizzas</strong><br>'+PIZZA_MENU.map(i=>`• ${i.name} — IDR ${i.price}K`).join('<br>');
+    }
+    addTyping();await sleep(700);
+    await streamBubble(resp,14);
+    setAgent('root','idle');
+    return;
+  }
+
+  // ── Menu query ────────────────────────────────────────────────────────────
+  if(it.menu && !it.order){
+    setAgent('root','routing');
+    log('root','intent: menu_query — polling both seller agents');
+    log('a2a',`POST /tasks/send → burger_seller_agent (session ${S.sessionId})`,{highlight:[S.sessionId]});
+    await sleep(400);
+    setAgent('burger','thinking'); activeEdge='burger'; burst('burger',4);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} task${S.taskN!==1?'s':''}`;
+    log('burger','recv task — list_menu request');
+    await sleep(900+Math.random()*400);
+    log('burger','LLM responded — status: COMPLETED');
+    log('a2a',`task/send response → task.status.state: COMPLETED`);
+    setAgent('burger','done'); activeEdge=null;
+    await sleep(250);
+    log('a2a',`POST /tasks/send → pizza_seller_agent (session ${S.sessionId})`,{highlight:[S.sessionId]});
+    setAgent('pizza','thinking'); activeEdge='pizza'; burst('pizza',4);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} tasks`;
+    log('pizza','recv task — list_menu request');
+    await sleep(800+Math.random()*500);
+    log('pizza','LangGraph ReAct completed — status: COMPLETED');
+    log('a2a',`task/send response → task.status.state: COMPLETED`);
+    setAgent('pizza','done'); activeEdge=null;
+    addTyping(); await sleep(500);
+    log('root','composing full menu response from both agents');
+    const burgerRows=BURGER_MENU.map(i=>`• ${i.name} — <strong>IDR ${i.price}K</strong>`).join('<br>');
+    const pizzaRows=PIZZA_MENU.map(i=>`• ${i.name} — <strong>IDR ${i.price}K</strong>`).join('<br>');
+    await streamBubble(`Here's what we have today:<br><br><strong style="color:var(--amber)">🍔 Burger Menu</strong><br>${burgerRows}<br><br><strong style="color:var(--teal)">🍕 Pizza Menu</strong><br>${pizzaRows}<br><br>What would you like to order?`,14);
+    setAgent('root','idle'); setAgent('burger','idle'); setAgent('pizza','idle');
+    return;
+  }
+
+  // ── Order with both ───────────────────────────────────────────────────────
+  if(it.order && it.burger && it.pizza){
+    const bItems=pickItems(text,BURGER_MENU);
+    const pItems=pickItems(text,PIZZA_MENU);
+    S.pendingConfirm={type:'both',bItems,pItems};
+    setAgent('root','routing');
+    log('root','intent: multi_order — will delegate to both seller agents after confirmation');
+    addTyping();await sleep(900);
+    const bList=bItems.map(i=>`${i.qty}× ${i.name} (IDR ${i.price*i.qty}K)`).join(', ');
+    const pList=pItems.map(i=>`${i.qty}× ${i.name} (IDR ${i.price*i.qty}K)`).join(', ');
+    const total=totalPrice(bItems)+totalPrice(pItems);
+    await streamBubble(`I'll place two separate orders — one with each seller.<br><br>🍔 <strong>Burger Seller:</strong> ${bList}<br>🍕 <strong>Pizza Seller:</strong> ${pList}<br><br>Total: <strong>IDR ${total}K</strong><br><br>Shall I confirm both orders?`,16);
+    log('root','status: INPUT_REQUIRED — awaiting user confirmation');
+    setAgent('root','idle');
+    return;
+  }
+
+  // ── Burger only order ─────────────────────────────────────────────────────
+  if(it.order && it.burger && !it.pizza){
+    const items=pickItems(text,BURGER_MENU);
+    S.pendingConfirm={type:'burger',items};
+    setAgent('root','routing');
+    log('root','intent: burger_order → routing to Burger Seller Agent');
+    log('a2a',`POST /tasks/send → burger_seller_agent`,{highlight:['burger_seller_agent']});
+    await sleep(350);
+    setAgent('burger','thinking'); activeEdge='burger'; burst('burger',5);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} tasks`;
+    log('burger','recv task — parsing order intent');
+    await sleep(700+Math.random()*300);
+    log('burger','CrewAI Agent reasoning: order detected, confirmation required');
+    log('a2a','task.status.state: INPUT_REQUIRED',{highlight:['INPUT_REQUIRED']});
+    addTyping();await sleep(500);
+    const list=items.map(i=>`${i.qty}× ${i.name}`).join(', ');
+    const total=totalPrice(items);
+    await streamBubble(`Got it! The Burger Seller confirms your order:<br><br>${items.map(i=>`• ${i.qty}× ${i.name} — IDR ${i.price*i.qty}K`).join('<br>')}<br><br><strong>Total: IDR ${total}K</strong><br><br>Shall I place this order?`,16);
+    log('burger','awaiting user confirmation — escalating to root');
+    setAgent('burger','idle'); setAgent('root','idle'); activeEdge=null;
+    return;
+  }
+
+  // ── Pizza only order ──────────────────────────────────────────────────────
+  if(it.order && it.pizza && !it.burger){
+    const items=pickItems(text,PIZZA_MENU);
+    S.pendingConfirm={type:'pizza',items};
+    setAgent('root','routing');
+    log('root','intent: pizza_order → routing to Pizza Seller Agent');
+    log('a2a',`POST /tasks/send → pizza_seller_agent`,{highlight:['pizza_seller_agent']});
+    await sleep(350);
+    setAgent('pizza','thinking'); activeEdge='pizza'; burst('pizza',5);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} tasks`;
+    log('pizza','recv task — LangGraph ReAct: Reason step');
+    await sleep(500);
+    log('pizza','ReAct: Act — tool decision: create_pizza_order');
+    await sleep(400+Math.random()*300);
+    log('pizza','ReAct: Observe — confirmation required before tool call');
+    log('a2a','task.status.state: INPUT_REQUIRED',{highlight:['INPUT_REQUIRED']});
+    addTyping();await sleep(500);
+    const total=totalPrice(items);
+    await streamBubble(`The Pizza Seller has your order ready to confirm:<br><br>${items.map(i=>`• ${i.qty}× ${i.name} — IDR ${i.price*i.qty}K`).join('<br>')}<br><br><strong>Total: IDR ${total}K</strong><br><br>Type <strong>"yes"</strong> to confirm and place this order.`,16);
+    log('pizza','awaiting user confirmation — escalating to root');
+    setAgent('pizza','idle'); setAgent('root','idle'); activeEdge=null;
+    return;
+  }
+
+  // ── Fallback ──────────────────────────────────────────────────────────────
+  setAgent('root','thinking');
+  log('root','intent: ambiguous — no clear order or menu query detected');
+  await sleep(500);
+  addTyping();await sleep(600);
+  await streamBubble(`I can help you with our burger and pizza menus, pricing, or placing orders. Try asking something like:<br><br>• <em>"What's on the menu?"</em><br>• <em>"How much is a Pepperoni Pizza?"</em><br>• <em>"I'd like 2 Classic Cheeseburgers"</em>`,16);
+  setAgent('root','idle');
+}
+
+async function doConfirmedOrder(pc){
+  if(pc.type==='both'){
+    // Place burger order
+    setAgent('root','routing');
+    log('root','user confirmed — delegating to Burger Seller');
+    log('a2a',`POST /tasks/send → burger_seller_agent — confirmed=true`);
+    await sleep(300);
+    setAgent('burger','calling'); activeEdge='burger'; burst('burger',7);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} tasks`;
+    log('burger','recv confirmed task');
+    await sleep(400);
+    log('tool',`create_burger_order(${JSON.stringify(pc.bItems.map(i=>({name:i.name,qty:i.qty,price:i.price})))})`,{highlight:['create_burger_order']});
+    await sleep(900+Math.random()*400);
+    const bId=uid();
+    log('burger',`tool returned — order_id: ${bId}`,{highlight:[bId]});
+    log('a2a','task.status.state: COMPLETED',{highlight:['COMPLETED']});
+    setAgent('burger','done'); activeEdge=null;
+    // Place pizza order
+    await sleep(200);
+    log('root','delegating to Pizza Seller');
+    log('a2a',`POST /tasks/send → pizza_seller_agent — confirmed=true`);
+    setAgent('pizza','calling'); activeEdge='pizza'; burst('pizza',7);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} tasks`;
+    log('pizza','recv confirmed task — ReAct: Act');
+    await sleep(300);
+    log('tool',`create_pizza_order(${JSON.stringify(pc.pItems.map(i=>({name:i.name,qty:i.qty,price:i.price})))})`,{highlight:['create_pizza_order']});
+    await sleep(1000+Math.random()*400);
+    const pId=uid();
+    log('pizza',`tool returned — order_id: ${pId}`,{highlight:[pId]});
+    log('a2a','task.status.state: COMPLETED',{highlight:['COMPLETED']});
+    setAgent('pizza','done'); activeEdge=null;
+    addTyping();await sleep(400);
+    const bub=await streamBubble('Both orders confirmed! Here are your receipts:',16);
+    appendToBubble(bub, receiptHTML('🍔 Burger Order', bId, pc.bItems,'var(--amber)'));
+    appendToBubble(bub, '<div style="height:6px"></div>');
+    appendToBubble(bub, receiptHTML('🍕 Pizza Order', pId, pc.pItems,'var(--teal)'));
+    scrollBottom();
+    await sleep(300);
+    setAgent('root','idle');setAgent('burger','idle');setAgent('pizza','idle');
+
+  } else if(pc.type==='burger'){
+    setAgent('root','routing');
+    log('root','user confirmed burger order — re-invoking Burger Seller');
+    log('a2a','POST /tasks/send → burger_seller_agent — confirmed=true');
+    await sleep(300);
+    setAgent('burger','calling'); activeEdge='burger'; burst('burger',7);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} tasks`;
+    log('burger','recv confirmed order task');
+    await sleep(300);
+    log('tool',`create_burger_order(${JSON.stringify(pc.items.map(i=>({name:i.name,qty:i.qty,price:i.price})))})`,{highlight:['create_burger_order']});
+    await sleep(1100+Math.random()*400);
+    const ordId=uid();
+    log('burger',`tool returned successfully — order_id: ${ordId}`,{highlight:[ordId]});
+    log('a2a','task.status.state: COMPLETED',{highlight:['COMPLETED']});
+    setAgent('burger','done'); activeEdge=null;
+    addTyping();await sleep(400);
+    const bub=await streamBubble('Order confirmed! Here\'s your receipt:',16);
+    appendToBubble(bub, receiptHTML('🍔 Burger Order', ordId, pc.items,'var(--amber)'));
+    scrollBottom();
+    await sleep(300);
+    setAgent('root','idle');setAgent('burger','idle');
+
+  } else if(pc.type==='pizza'){
+    setAgent('root','routing');
+    log('root','user confirmed pizza order — re-invoking Pizza Seller');
+    log('a2a','POST /tasks/send → pizza_seller_agent — confirmed=true');
+    await sleep(300);
+    setAgent('pizza','calling'); activeEdge='pizza'; burst('pizza',7);
+    S.taskN++;document.getElementById('taskCounter').textContent=`${S.taskN} tasks`;
+    log('pizza','recv confirmed task — ReAct: Act (tool execution)');
+    await sleep(300);
+    log('tool',`create_pizza_order(${JSON.stringify(pc.items.map(i=>({name:i.name,qty:i.qty,price:i.price})))})`,{highlight:['create_pizza_order']});
+    await sleep(1200+Math.random()*400);
+    const ordId=uid();
+    log('pizza',`MemorySaver checkpoint updated — order_id: ${ordId}`,{highlight:[ordId]});
+    log('a2a','task.status.state: COMPLETED',{highlight:['COMPLETED']});
+    setAgent('pizza','done'); activeEdge=null;
+    addTyping();await sleep(400);
+    const bub=await streamBubble('Order confirmed! Here\'s your receipt:',16);
+    appendToBubble(bub, receiptHTML('🍕 Pizza Order', ordId, pc.items,'var(--teal)'));
+    scrollBottom();
+    await sleep(300);
+    setAgent('root','idle');setAgent('pizza','idle');
+  }
+}
+
+// ─── Send ─────────────────────────────────────────────────────────────────────
+async function send(){
+  const input=document.getElementById('msgInput');
+  const text=input.value.trim();
+  if(!text||S.busy)return;
+  S.busy=true;
+  document.getElementById('sendBtn').disabled=true;
+  input.value=''; resize(input);
+  document.getElementById('tokenCount').textContent='';
+  addUserMsg(text);
+  log('sys',`user → "${text.length>55?text.slice(0,55)+'…':text}"`);
+  addTyping();
+  await sleep(220); // tiny realistic delay before first agent action
+  await handleMessage(text);
+  S.busy=false;
+  document.getElementById('sendBtn').disabled=false;
+  input.focus();
+}
+function pill(el){document.getElementById('msgInput').value=el.textContent;resize(document.getElementById('msgInput'));send();}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function resize(ta){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,100)+'px';}
+document.getElementById('msgInput').addEventListener('input',function(){
+  const l=this.value.trim().length;
+  document.getElementById('tokenCount').textContent=l?`~${Math.ceil(l/4)} tok`:'';
+});
+
+// ─── Boot log ─────────────────────────────────────────────────────────────────
+(async()=>{
+  const boot=[
+    [120, ()=>log('sys','ROCm 6.1 platform detected — AMD Instinct MI300X')],
+    [200, ()=>log('sys','vLLM server online :8088 — meta-llama/Llama-3.1-8B-Instruct',{highlight:['meta-llama/Llama-3.1-8B-Instruct']})],
+    [200, ()=>log('sys','Ollama server online :11434 — llama3.1:latest',{highlight:['llama3.1:latest']})],
+    [180, ()=>log('root','Google ADK runner initialised — InMemorySessionService ready')],
+    [180, ()=>log('a2a',`GET http://localhost:10001/.well-known/agent.json → 200 OK`,{highlight:['200 OK']})],
+    [160, ()=>log('burger','agent card resolved — CrewAI · vLLM · auth: Basic Auth',{highlight:['Basic Auth']})],
+    [180, ()=>log('a2a',`GET http://localhost:10000/.well-known/agent.json → 200 OK`,{highlight:['200 OK']})],
+    [160, ()=>log('pizza','agent card resolved — LangGraph · Ollama · auth: Bearer Token',{highlight:['Bearer Token']})],
+    [160, ()=>log('root',`session created — id: ${S.sessionId} — 2 remote agents registered`,{highlight:[S.sessionId]})],
+    [120, ()=>log('sys','system ready — 3/3 agents online',{highlight:['3/3 agents online']})],
+  ];
+  let t=0;
+  for(const [ms,fn] of boot){await sleep(t+=ms);fn();}
+})();
+</script>
+</body>
+</html>

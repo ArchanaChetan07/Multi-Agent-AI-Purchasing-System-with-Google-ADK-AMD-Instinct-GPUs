@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "adk-multi-agent-system"
+version = "1.0.0"
+description = "Cross-framework multi-agent AI purchasing system using Google ADK, CrewAI, LangGraph and AMD GPUs"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["ai-agents", "google-adk", "a2a-protocol", "crewai", "langgraph", "amd", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/adk-multi-agent-system"
+Documentation = "https://github.com/your-username/adk-multi-agent-system/blob/main/docs/ARCHITECTURE.md"
+Issues = "https://github.com/your-username/adk-multi-agent-system/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agents*", "utils*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=agents --cov-report=term-missing --cov-report=xml -v"
+
+[tool.coverage.run]
+source = ["agents"]
+omit = ["*/tests/*", "*/__init__.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]

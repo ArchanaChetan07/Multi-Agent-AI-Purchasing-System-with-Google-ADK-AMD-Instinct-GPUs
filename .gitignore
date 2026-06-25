@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+
+# Environment
+.env
+*.env.local
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# vLLM clone (large, fetched at runtime)
+vllm/
+
+# Model weights (never commit these)
+*.bin
+*.safetensors
+*.gguf
