@@ -1,100 +1,106 @@
-# Multi-Agent-AI-Purchasing-System-with-Google-ADK-AMD-Instinct-GPUs
+# Multi-Agent AI Purchasing System
 
-Python · multi-agent · LLM · LangChain · FastAPI · Kubernetes · Docker · MCP · CI/CD · MLOps. 100% local (vLLM+Ollama) on AMD Instinct; 34 files; CI+tests. Agentic systems with tool use, orchestration, and measurable task outcomes.
+### Cross-framework Agent-to-Agent demo: Google ADK concierge routes to CrewAI/vLLM and LangGraph/Ollama sellers
 
-## Results (numbers)
+[![CI](https://github.com/ArchanaChetan07/Multi-Agent-AI-Purchasing-System-with-Google-ADK-AMD-Instinct-GPUs/actions/workflows/ci.yml/badge.svg)](https://github.com/ArchanaChetan07/Multi-Agent-AI-Purchasing-System-with-Google-ADK-AMD-Instinct-GPUs/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/pytest-16%20tests-1f8a4c)](tests/)
+[![Agents](https://img.shields.io/badge/agents-3%20frameworks-553c9a)](agents/)
 
-| Metric | Value |
+Demonstrates **Agent-to-Agent (A2A)** interoperability across three different agent stacks on **local AMD Instinct–class GPUs**: a Google **ADK** purchasing concierge (LiteLLM → Ollama) delegates food orders to a **CrewAI** burger seller backed by **vLLM** and a **LangGraph** pizza seller on Ollama. Includes Gradio UI, per-agent auth (Basic vs Bearer), and offline pytest coverage — no cloud API required when local models are running.
+
+---
+
+## Key Results
+
+| Metric | Value | Source |
+|---|---|---|
+| Agent services | **3** (purchasing, burger, pizza) | `agents/` |
+| Frameworks | **Google ADK, CrewAI, LangGraph** | `requirements.txt`, `docs/ARCHITECTURE.md` |
+| LLM backends | **vLLM (burger) + Ollama (pizza + root)** | `scripts/start_vllm.sh`, `scripts/start_ollama.sh` |
+| Python modules | **20** | git tree |
+| Unit tests | **16** | `tests/test_*_agent.py` |
+| UI | Gradio purchasing app | `agents/purchasing_agent/app.py` |
+| A2A ports | Burger **:10001**, Pizza **:10000** | `docs/ARCHITECTURE.md` |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    U[User] --> PC[Purchasing Concierge ADK + LiteLLM + Ollama]
+    PC -->|A2A HTTP Basic| BA[Burger Seller CrewAI + vLLM :10001]
+    PC -->|A2A HTTP Bearer| PA[Pizza Seller LangGraph + Ollama :10000]
+    BA --> ORD1[create_burger_order tool]
+    PA --> ORD2[pizza order tools]
+```
+
+**How it works:** the root ADK agent parses a natural-language food request, discovers seller agents over HTTP A2A, and forwards sub-tasks. Burger CrewAI uses OpenAI-compatible vLLM tool-calling; Pizza LangGraph runs quantized GGUF models via Ollama. Memory is split by setting vLLM `--gpu-memory-utilization 0.6`.
+
+---
+
+## Tech Stack
+
+| Layer | Choice |
 |---|---|
-| Tracked repository files | **34** |
-| Python modules | **20** |
-| Notebooks | **0** |
-| Markdown docs | **4** |
-| CI workflows present | **Yes** |
-| Automated tests present | **Yes** |
-| Project highlights | **100% local (vLLM+Ollama) on AMD Instinct; 34 files; CI+tests** |
+| Root agent | `google-adk`, LiteLLM, Ollama |
+| Burger agent | CrewAI, vLLM (Llama 3.1 chat template) |
+| Pizza agent | LangGraph, langchain-ollama |
+| Protocol | Google A2A HTTP between agents |
+| UI | Gradio |
+| Auth | Basic (burger), Bearer (pizza) |
+| Tests | pytest, pytest-asyncio |
 
-## Tech stack
+---
 
-- **Primary language:** Python
-- **Languages (GitHub):** Python (48833 bytes), Shell (5196 bytes)
-- **Focus area:** agent
-- **Tooling keywords:** Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM
+## Features
 
-## Architecture (logical)
+- Three-framework interoperability through a shared A2A contract
+- Local-only inference path (vLLM + Ollama) for AMD GPU setups
+- Tool-based order creation with structured `Order` responses
+- Startup scripts for vLLM, Ollama, and all agents (`scripts/start_all.sh`)
+- AMD GPU setup guide in `docs/AMD_GPU_SETUP.md`
 
-\\	ext
-Inputs → Processing / models / agents → Evaluation & metrics → CI checks → Artifacts
-\
-## Engineering practices
+---
 
-1. Reproducible layout with clear module boundaries  
-2. Automated validation via CI and/or tests when present  
-3. Documentation that states measurable outcomes, not slogans  
-4. Skill surface aligned to common JD keywords: Python, machine learning, NLP/LLM, Kubernetes, Docker, observability, data pipelines  
+## Installation & Usage
 
-## Quick start
-
-\\ash
+```bash
 git clone https://github.com/ArchanaChetan07/Multi-Agent-AI-Purchasing-System-with-Google-ADK-AMD-Instinct-GPUs.git
 cd Multi-Agent-AI-Purchasing-System-with-Google-ADK-AMD-Instinct-GPUs
-# Install project requirements (see requirements.txt / pyproject.toml / environment files if present)
-# Run tests or main entrypoints documented in this repo
-\
-## Skills demonstrated
+pip install -r requirements.txt
+cp .env.example .env
+```
 
-Python · machine-learning · CI/CD · API design · testing · automation · Docker · Kubernetes · FastAPI · Prometheus · data-science · LLM · MLOps · software-engineering · benchmarking · observability
+```bash
+# Start local LLMs + agents (requires AMD GPU + ROCm stack)
+./scripts/start_all.sh
 
-## License / notice
+# Offline unit tests (mocked agents)
+pytest -q
 
-See repository license file if present. Metrics above are derived from repository structure and previously published validation notes where available.
+# Gradio UI
+python agents/purchasing_agent/app.py
+```
 
+---
 
-### Extended notes
+## Project Structure
 
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
+```text
+Multi-Agent-AI-Purchasing-System-with-Google-ADK-AMD-Instinct-GPUs/
+├── agents/
+│   ├── purchasing_agent/    # Google ADK root + Gradio
+│   ├── burger_agent/      # CrewAI + vLLM
+│   └── pizza_agent/       # LangGraph + Ollama
+├── scripts/               # start_vllm, start_ollama, start_all
+├── tests/                 # 16 pytest tests
+└── docs/                  # ARCHITECTURE, A2A_PROTOCOL, AMD_GPU_SETUP
+```
 
+---
 
-### Extended notes
+## License
 
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
-
-
-### Extended notes
-
-This section expands documentation for completeness: reproducibility, keyword coverage for Python, machine-learning, CI/CD, API, Docker, Kubernetes, FastAPI, Prometheus, testing, automation, MLOps, LLM, data-science, software-engineering, benchmarking, and observability practices used across the portfolio.
+See repository license file if present.
